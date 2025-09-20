@@ -12,8 +12,11 @@
 - **
 - **
 ### Как пользоваться?
-1)Переходим в телеграмм бот [@critical_infobot]()
+1) Переходим в телеграмм бот [@critical_infobot]()
 
 
 <img width="324" height="79" alt="image" src="https://github.com/user-attachments/assets/8eb1824d-c44f-4c1c-b7aa-43fecba8930c" />
+2) Нажимает "Старт" для запуска бота
+
+
 
