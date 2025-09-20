@@ -16,7 +16,11 @@
 
 
 <img width="324" height="79" alt="image" src="https://github.com/user-attachments/assets/8eb1824d-c44f-4c1c-b7aa-43fecba8930c" />
-2) Нажимает "Старт" для запуска бота
+
+2) Нажимаем "Старт" для запуска бота
 
 
+<img width="1328" height="443" alt="image" src="https://github.com/user-attachments/assets/847dff47-649e-4fcd-8d4f-72e27dd8a951" />
+
+3) Выбираем 
 
