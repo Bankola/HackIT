@@ -1,19 +1,10 @@
-<img width="700" height="700" alt="icon_700x700@2x" src="https://www.google.com/url?sa=i&url=https%3A%2F%2Fwww.forbes.ru%2Fprofile%2F521720-t1&psig=AOvVaw0QdI9HtFbTC1Gjq6YE95VC&ust=1758464187091000&source=images&cd=vfe&opi=89978449&ved=0CBUQjRxqFwoTCPim9d3D548DFQAAAAAdAAAAABAE" />
-<img  alt="icon_128x128@2x" src="https://github.com/user-attachments/assets/90133f83-b4f6-41c6-aab9-25d0859d2a47" />
-![](https://cdn.forbes.ru/forbes-static/new/2024/09/T1-1-kopia2-66f13ec658c5e.jpg)
+<img width="256" height="256" alt="icon_128x128@2x" src="https://cdn.forbes.ru/forbes-static/new/2024/09/T1-1-kopia2-66f13ec658c5e.jpg" />
+#PingTower
 
-#HackIT
+Современные компании критически зависят от бесперебойной работы своих веб-сервисов, поскольку каждая минута простоя может обходиться бизнесу в значительные финансовые потери, особенно для компаний электронной коммерции, финансовых сервисов и SaaS-платформ. Регулярно возникающие сбои из-за технических неисправностей, перегрузок сервера, проблем с сетевой инфраструктурой или DDoS-атак приводят к потере клиентов, снижению доверия к бренду и прямым убыткам от недоступности сервисов. Существующие подходы к мониторингу часто основаны на ручных проверках или базовых инструментах, которые не обеспечивают комплексного контроля и быстрого реагирования на проблемы. Многие компании узнают о сбоях только после жалоб пользователей, что значительно усугубляет последствия инцидентов и увеличивает время восстановления. Отсутствие автоматизированного мониторинга с детальной аналитикой и гибкой системой уведомлений не позволяет техническим командам проактивно предотвращать проблемы и оперативно реагировать на возникающие сбои, что в конечном итоге негативно сказывается на пользовательском опыте и репутации компании.
 
-A decentralized peer-to-peer messaging app with dual transport architecture: local Bluetooth mesh networks for offline communication and internet-based Nostr protocol for global reach. No accounts, no phone numbers, no central servers. It's the side-groupchat.
+Наша команда разработала комплексную систему мониторинга веб-сервисов, которая обеспечивает непрерывное отслеживание доступности и производительности цифровых ресурсов в режиме 24/7. Система включает мощный планировщик проверок, построенный на базе Cron-подобной архитектуры, который позволяет настраивать гибкие расписания мониторинга для различных типов ресурсов с возможностью определения интервалов проверки от нескольких секунд до часов в зависимости от критичности сервиса. 
 
-[bitchat.free](http://bitchat.free)
-
-> [!WARNING]
-> Private messages have not received external security review and may contain vulnerabilities. Do not use for sensitive use cases, and do not rely on its security until it has been reviewed. Now uses the [Noise Protocol](http://www.noiseprotocol.org) for identity and encryption. Public local chat (the main feature) has no security concerns.
-
-## License
-
-This project is released into the public domain. See the [LICENSE](LICENSE) file for details.
 
 ## Features
 
