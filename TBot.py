@@ -213,7 +213,6 @@ async def show_specific_site_info(callback: types.CallbackQuery):
     # Получаем статистику
     stats = await db.get_site_stats(site_id)
 
-    # Формируем ответ
     added_date = datetime.fromisoformat(site['added_date']).strftime("%Y-%m-%d %H:%M:%S")
     last_check = datetime.fromisoformat(site['last_check']).strftime("%Y-%m-%d %H:%M:%S")
 
@@ -245,7 +244,6 @@ async def show_specific_site_info(callback: types.CallbackQuery):
     await callback.answer()
 
 
-# Обработка кнопки "Мои сайты"
 @dp.message(F.text == "Мои сайты")
 async def list_sites(message: types.Message):
     user_id = message.from_user.id
@@ -328,6 +326,198 @@ async def check_site_now(callback: types.CallbackQuery):
         await db.add_error(callback.from_user.id, site_id, 'connection_error', str(status))
 
     await callback.answer(response, show_alert=True)
+
+
+# Обработка кнопки "Удалить сайт"
+@dp.callback_query(F.data.startswith("delete_site:"))
+async def delete_site_handler(callback: types.CallbackQuery):
+    site_id = int(callback.data.split(":")[1])
+    user_id = callback.from_user.id
+
+    # Получаем информацию о сайте перед удалением
+    site = await db.get_site_by_id(site_id)
+    if not site:
+        await callback.answer("❌ Сайт не найден!")
+        return
+
+    # Проверяем, что сайт принадлежит пользователю
+    if site['user_id'] != user_id:
+        await callback.answer("❌ У вас нет прав для удаления этого сайта!")
+        return
+
+    # Подтверждение удаления
+    await callback.message.edit_text(
+        f"⚠️ Вы уверены, что хотите удалить сайт?\n\n"
+        f"URL: {site['url']}\n\n"
+        f"Это действие нельзя отменить! Все данные о сайте будут удалены.",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="✅ Да, удалить", callback_data=f"confirm_delete:{site_id}"),
+             InlineKeyboardButton(text="❌ Отмена", callback_data=f"cancel_delete:{site_id}")]
+        ])
+    )
+    await callback.answer()
+
+
+# Подтверждение удаления сайта
+@dp.callback_query(F.data.startswith("confirm_delete:"))
+async def confirm_delete_site(callback: types.CallbackQuery):
+    site_id = int(callback.data.split(":")[1])
+    user_id = callback.from_user.id
+
+    # Получаем информацию о сайте перед удалением
+    site = await db.get_site_by_id(site_id)
+    if not site:
+        await callback.answer("❌ Сайт не найден!")
+        return
+
+    # Удаляем сайт
+    success = await db.delete_site(user_id, site_id)
+
+    if success:
+        await callback.message.edit_text(
+            f"✅ Сайт успешно удален!\n\n"
+            f"URL: {site['url']}\n\n"
+            f"Все данные о сайте были удалены из системы."
+        )
+    else:
+        await callback.message.edit_text(
+            "❌ Не удалось удалить сайт. Возможно, у вас нет прав на это действие."
+        )
+    await callback.answer()
+
+
+# Отмена удаления сайта
+@dp.callback_query(F.data.startswith("cancel_delete:"))
+async def cancel_delete_site(callback: types.CallbackQuery):
+    site_id = int(callback.data.split(":")[1])
+
+    # Возвращаемся к информации о сайте
+    sites = await db.get_user_sites(callback.from_user.id)
+    site = next((s for s in sites if s['id'] == site_id), None)
+
+    if not site:
+        await callback.answer("Сайт не найден")
+        return
+
+    # Проверяем текущий статус
+    is_available, status, response_time = await check_site_availability(site['url'])
+    new_status = 'online' if is_available else 'offline'
+    await db.update_site_status(site_id, new_status, status if is_available else None)
+
+    # Получаем статистику
+    stats = await db.get_site_stats(site_id)
+
+    # Формируем ответ
+    added_date = datetime.fromisoformat(site['added_date']).strftime("%Y-%m-%d %H:%M:%S")
+    last_check = datetime.fromisoformat(site['last_check']).strftime("%Y-%m-%d %H:%M:%S")
+
+    response = f"🌐 Информация о сайте: {site['url']}\n\n"
+    response += f"📅 Добавлен: {added_date}\n"
+    response += f"⏰ Последняя проверка: {last_check}\n"
+    response += f"📊 Текущий статус: {'✅ Онлайн' if is_available else '❌ Оффлайн'}\n"
+
+    if is_available:
+        response += f"⚡ Время ответа: {response_time:.2f} сек\n"
+        response += f"🔢 Код ответа: {status}\n"
+    else:
+        response += f"🔧 Причина: {status}\n"
+
+    response += f"\n📈 Статистика:\n"
+    response += f"   Всего проверок: {stats['total_checks']}\n"
+    response += f"   Успешных: {stats['success_checks']}\n"
+    response += f"   Ошибок: {stats['error_count']}\n"
+    response += f"   Uptime: {stats['uptime_percentage']:.1f}%\n"
+
+    # Добавляем кнопки
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🔄 Проверить сейчас", callback_data=f"check_now:{site_id}"),
+         InlineKeyboardButton(text="❌ Удалить сайт", callback_data=f"delete_site:{site_id}")],
+        [InlineKeyboardButton(text="📊 Ошибки сайта", callback_data=f"site_errors:{site_id}")]
+    ])
+
+    await callback.message.edit_text(response, reply_markup=keyboard)
+    await callback.answer()
+
+
+# Обработка кнопки "Ошибки сайта"
+@dp.callback_query(F.data.startswith("site_errors:"))
+async def show_site_errors(callback: types.CallbackQuery):
+    site_id = int(callback.data.split(":")[1])
+    user_id = callback.from_user.id
+
+    # Получаем информацию о сайте
+    site = await db.get_site_by_id(site_id)
+    if not site:
+        await callback.answer("❌ Сайт не найден!")
+        return
+
+    # Проверяем, что сайт принадлежит пользователю
+    if site['user_id'] != user_id:
+        await callback.answer("❌ У вас нет прав для просмотра ошибок этого сайта!")
+        return
+
+    # Получаем последние 5 ошибок для этого сайта
+    errors = await db.get_site_errors(user_id, site_id=site_id, limit=5)
+
+    if not errors:
+        response = f"✅ Для сайта {site['url']} нет ошибок!\n\n"
+        response += "Система мониторинга не обнаружила проблем с этим сайтом."
+
+        await callback.message.edit_text(
+            response,
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="↩️ Назад к информации", callback_data=f"site_info:{site_id}")]
+            ])
+        )
+    else:
+        response = f"📊 Последние ошибки сайта: {site['url']}\n\n"
+
+        for i, error in enumerate(errors, 1):
+            timestamp = datetime.fromisoformat(error['timestamp']).strftime("%Y-%m-%d %H:%M:%S")
+            status_emoji = "✅" if error['resolved'] else "❌"
+            response += f"{i}. {timestamp}\n"
+            response += f"   Тип: {error['error_type']}\n"
+            response += f"   Ошибка: {error['error_message']}\n"
+            response += f"   Статус: {status_emoji} {'Решена' if error['resolved'] else 'Активна'}\n\n"
+
+        response += f"Всего ошибок: {len(errors)}"
+
+        await callback.message.edit_text(
+            response,
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="↩️ Назад к информации", callback_data=f"site_info:{site_id}"),
+                 InlineKeyboardButton(text="🗑️ Очистить ошибки", callback_data=f"clear_errors:{site_id}")]
+            ])
+        )
+
+    await callback.answer()
+
+
+# Обработка кнопки "Очистить ошибки"
+@dp.callback_query(F.data.startswith("clear_errors:"))
+async def clear_site_errors(callback: types.CallbackQuery):
+    site_id = int(callback.data.split(":")[1])
+    user_id = callback.from_user.id
+
+    # Помечаем все ошибки сайта как решенные
+    async with aiosqlite.connect('monitoring_bot.db') as conn:
+        await conn.execute(
+            'UPDATE errors SET resolved = 1 WHERE site_id = ? AND user_id = ?',
+            (site_id, user_id)
+        )
+        await conn.commit()
+
+    # Получаем информацию о сайте
+    site = await db.get_site_by_id(site_id)
+
+    await callback.message.edit_text(
+        f"✅ Все ошибки для сайта {site['url']} помечены как решенные!\n\n"
+        f"Система продолжит мониторинг сайта на наличие новых ошибок.",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="↩️ Назад к информации", callback_data=f"site_info:{site_id}")]
+        ])
+    )
+    await callback.answer()
 
 
 # Запуск бота с инициализацией БД

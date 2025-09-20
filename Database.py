@@ -1,3 +1,4 @@
+# Database.py - добавляем новые методы
 import aiosqlite
 import json
 from datetime import datetime
@@ -70,8 +71,7 @@ class Database:
         """Добавление пользователя в базу данных"""
         async with aiosqlite.connect(self.db_name) as db:
             await db.execute(
-                'INSERT OR IGNORE INTO users (user_id, username, first_name, last_name, created_at) VALUES (?, ?, ?, '
-                '?, ?)',
+                'INSERT OR IGNORE INTO users (user_id, username, first_name, last_name, created_at) VALUES (?, ?, ?, ?, ?)',
                 (user_id, username, first_name, last_name, datetime.now().isoformat())
             )
             await db.commit()
@@ -97,8 +97,7 @@ class Database:
             if status_code is not None:
                 success = 1 if status == 'online' else 0
                 await db.execute(
-                    'INSERT INTO check_history (site_id, status_code, response_time, timestamp, success) VALUES (?, '
-                    '?, ?, ?, ?)',
+                    'INSERT INTO check_history (site_id, status_code, response_time, timestamp, success) VALUES (?, ?, ?, ?, ?)',
                     (site_id, status_code, 0, datetime.now().isoformat(), success)
                 )
 
@@ -131,6 +130,17 @@ class Database:
             cursor = await db.execute(
                 'SELECT * FROM sites WHERE user_id = ? AND url = ?',
                 (user_id, url)
+            )
+            site = await cursor.fetchone()
+            return dict(site) if site else None
+
+    async def get_site_by_id(self, site_id: int) -> Dict:
+        """Получение сайта по ID"""
+        async with aiosqlite.connect(self.db_name) as db:
+            db.row_factory = aiosqlite.Row
+            cursor = await db.execute(
+                'SELECT * FROM sites WHERE id = ?',
+                (site_id,)
             )
             site = await cursor.fetchone()
             return dict(site) if site else None
@@ -195,13 +205,25 @@ class Database:
                 'uptime_percentage': (success_checks / total_checks * 100) if total_checks > 0 else 0
             }
 
-    async def delete_site(self, user_id: int, site_id: int):
+    async def delete_site(self, user_id: int, site_id: int) -> bool:
         """Удаление сайта и связанных данных"""
         async with aiosqlite.connect(self.db_name) as db:
-            await db.execute('DELETE FROM sites WHERE id = ? AND user_id = ?', (site_id, user_id))
+            # Проверяем, что сайт принадлежит пользователю
+            cursor = await db.execute(
+                'SELECT id FROM sites WHERE id = ? AND user_id = ?',
+                (site_id, user_id)
+            )
+            site = await cursor.fetchone()
+
+            if not site:
+                return False
+
+            # Удаляем связанные данные
             await db.execute('DELETE FROM errors WHERE site_id = ?', (site_id,))
             await db.execute('DELETE FROM check_history WHERE site_id = ?', (site_id,))
+            await db.execute('DELETE FROM sites WHERE id = ?', (site_id,))
             await db.commit()
+            return True
 
     async def mark_error_resolved(self, error_id: int):
         """Пометить ошибку как решенную"""
